@@ -26,20 +26,15 @@ def save_image(id, img_tensor):
         os.makedirs(os.path.dirname(face_image_path), exist_ok=True)
         img_pil.save(face_image_path)
 
-
-
 def save_feature(id, img_aligned):
 
     img_aligned_list = img_aligned.tolist()
 
-    # 创建 feature 目录（如果不存在）
     if not os.path.exists('features'):
         os.makedirs('features')
 
-    # 创建一个文件名，基于给定的 id
     filename = os.path.join('features', f"{id}.json")
-
-    # 将特征数据保存为 JSON 格式
+    
     with open(filename, 'w') as file:
         json.dump(img_aligned_list, file)
 
