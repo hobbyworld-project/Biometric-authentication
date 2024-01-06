@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from face_models import load_face_models, get_face_embedding
 from utils import *
-from external_api import call_external_api
+from blockchain_api import call_blockchain_api
 import os
 
 # Create a Flask app instance
@@ -48,7 +48,7 @@ def upload_file(id):
             return jsonify({id: f"{status.replace('_', ' ').capitalize()} face"})
         else:
             # Call an external API with the embedding and return the result
-            call_external_api(id, embedding.tolist())
+            call_blockchain_api(id, embedding.tolist())
             return jsonify({id: embedding.tolist()})
 
     # Return a generic error if none of the above conditions are met

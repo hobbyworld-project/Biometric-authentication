@@ -1,7 +1,7 @@
 import requests
 import json
 
-def call_external_api(id, embedding):
+def call_blockchain_api(id, embedding):
     """
     Calls an external API to save face embedding data to blockchain.
     Parameters:

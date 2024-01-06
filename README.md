@@ -18,8 +18,8 @@ Includes various scripts for image processing and database management.
 - `face_models.py` - Responsible for loading the MTCNN and InceptionResnetV1 models for face detection and embeddings.
 - `get_face_embedding.py` - Processes images to detect faces and extract embeddings using the loaded models.
 
-### 4. External API Communication
-- `external_api.py` - Contains functionality to make requests to an external API, sending facial embeddings and related data.
+### 4. Blockchain API Communication
+- `blockchain_api.py` - Contains functionality to make requests to the blockchain API, sending facial embeddings and related data.
 
 ### 5. Database Initialization and Management
 - `init_db.py` - Initializes the SQLite database and creates necessary tables.
