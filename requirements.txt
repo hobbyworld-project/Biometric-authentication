@@ -1,7 +1,11 @@
 Flask
-torch
+requests
+numpy
+opencv-python
+dlib
+imutils
+scipy
 facenet-pytorch
 Pillow
-numpy
-requests
+torch
 sqlite3

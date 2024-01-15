@@ -1,5 +1,7 @@
 from facenet_pytorch import MTCNN, InceptionResnetV1
+from PIL import Image, ExifTags
 import torch
+import io
 
 # Global variable to set the computation device based on CUDA availability
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -40,9 +42,6 @@ def get_face_embedding(image_bytes, mtcnn, resnet):
     Returns:
         tuple: A tuple containing the status, face embedding, and aligned image.
     """
-    from PIL import Image
-    import io
-    from utils import correct_image_orientation
 
     # Try to open and process the image
     try:
@@ -61,3 +60,27 @@ def get_face_embedding(image_bytes, mtcnn, resnet):
         # Compute the face embedding using the ResNet model
         img_embedding = resnet(img_aligned.unsqueeze(0).to(device)).detach().cpu().numpy()[0]
         return "success", img_embedding, img_aligned
+
+def correct_image_orientation(img):
+    """
+    Corrects the orientation of an image based on its EXIF data.
+    Parameters:
+        img (PIL.Image): The image to be corrected.
+    Returns:
+        PIL.Image: The image with corrected orientation.
+    """
+    for orientation in ExifTags.TAGS.keys():
+        if ExifTags.TAGS[orientation] == 'Orientation':
+            break
+
+    exif = img._getexif()
+
+    if exif is not None:
+        if exif[orientation] == 3:
+            img = img.rotate(180, expand=True)
+        elif exif[orientation] == 6:
+            img = img.rotate(270, expand=True)
+        elif exif[orientation] == 8:
+            img = img.rotate(90, expand=True)
+
+    return img

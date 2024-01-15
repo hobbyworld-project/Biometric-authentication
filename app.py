@@ -1,65 +1,69 @@
 from flask import Flask, request, jsonify
-from face_models import load_face_models, get_face_embedding
-from utils import *
-from blockchain_api import call_blockchain_api
+from detect_face_profile import *
+from detect_mouth import detect_open_mouth
+from datetime import datetime, timedelta
+from status_check import update_status_json, check_all_tasks_completed, get_normalized_filename
+from feature_saving import embedding_feature_saving
 import os
+import logging
+import json
 
 # Create a Flask app instance
 app = Flask(__name__)
 
-# Load the face detection and embedding models
-mtcnn, resnet = load_face_models()
+logging.basicConfig(level=logging.INFO)
 
-@app.route('/upload/<id>', methods=['POST'])
-def upload_file(id):
-    # Check if the 'file' key is present in the uploaded files
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+@app.route('/upload/<id>/<task>', methods=['POST'])
+def liveness_detection(id, task):
+    try:
+        if 'file' not in request.files:
+            logging.warning("No file part in the request")
+            return jsonify({"error": "No file part"}), 400
 
-    # Retrieve the file from the request
-    file = request.files['file']
+        file = request.files['file']
+        if file.filename == '':
+            logging.warning("No selected file")
+            return jsonify({"error": "No selected file"}), 400
 
-    # Check if a file is selected
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        if file:
+            upload_folder = f'temporary/{id}/uploaded_videos'
+            os.makedirs(upload_folder, exist_ok=True)
+            normalized_filename = get_normalized_filename(id, task, file.filename)
+            file_path = os.path.join(upload_folder, normalized_filename)
+            file.save(file_path)
+            logging.info(f"File uploaded successfully: {file_path}")
 
-    # Process the file if it exists
-    if file:
-        # Save the file locally
-        file_path = f"./uploaded_images/{id}_{file.filename}"
-        file.save(file_path)
+            status_file = f"temporary/{id}/status.json"
+            if not os.path.exists(status_file) or datetime.now() - datetime.fromtimestamp(os.path.getmtime(status_file)) > timedelta(minutes=5):
+                with open(status_file, 'w') as f:
+                    json.dump({"detect_left_face": False, "detect_right_face": False, "detect_open_mouth": False}, f)
 
-        # Read the image and get its face embedding
-        with open(file_path, 'rb') as image_file:
-            status, embedding, img_aligned = get_face_embedding(image_file.read(), mtcnn, resnet)
-        
-        # Save logs and the aligned image
-        save_log(id, status)
-        save_image(id, img_aligned)
+            task_mapping = {"1": "detect_left_face", "2": "detect_right_face", "3": "detect_open_mouth"}
+            task_name = task_mapping.get(task, "invalid_task")
 
-        # Save the face embedding feature
-        if save_feature(id, embedding):
-            print("success")
-        else:
-            print("fail")
+            if task_name == "invalid_task":
+                return jsonify({"error": "Invalid task"}), 400
 
-        # Handle different face detection statuses
-        if status in ["no_face", "low_quality", "image_error"]:
-            return jsonify({id: f"{status.replace('_', ' ').capitalize()} face"})
-        else:
-            # Call an external API with the embedding and return the result
-            call_blockchain_api(id, embedding.tolist())
-            return jsonify({id: embedding.tolist()})
+            result = False
+            if task_name == "detect_left_face":
+                result = detect_left_face(file_path)
+            elif task_name == "detect_right_face":
+                result = detect_right_face(file_path)
+            elif task_name == "detect_open_mouth":
+                result = detect_open_mouth(file_path)
 
-    # Return a generic error if none of the above conditions are met
-    return jsonify({"error": "Unknown error occurred"}), 500
+            status = update_status_json(id, task_name, result)
 
-# Main block to run the Flask application
+            if check_all_tasks_completed(status):
+                saving_result = embedding_feature_saving(id)
+                return saving_result, 200
+            else:
+                return jsonify({task_name: result}), 200
+            
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
 if __name__ == '__main__':
-    # Create necessary directories if they don't exist
-    for directory in ['./uploaded_images', './cropped_faces', './logs']:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    # Run the Flask app
     app.run(host='0.0.0.0', port=5000, debug=True)
