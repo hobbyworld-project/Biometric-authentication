@@ -8,3 +8,4 @@ scipy
 facenet-pytorch
 Pillow
 torch
+cryptography

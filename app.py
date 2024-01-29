@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from status_check import update_status_json, check_all_tasks_completed, get_normalized_filename
 from feature_saving import embedding_feature_saving
 from face_recognition import face_verification, face_identification
+from whisper_model import WhisperModel
 import os
 import logging
 import json
@@ -15,6 +16,8 @@ app = Flask(__name__)
 
 # Set up logging with the INFO level
 logging.basicConfig(level=logging.INFO)
+
+whisper_model = WhisperModel()
 
 # Route for uploading videos and performing liveness detection
 @app.route('/upload/<id>/<task>', methods=['POST'])
@@ -234,6 +237,25 @@ def verification(id, task):
         # Log any exceptions that occur and return an internal server error
         logging.error(f"An error occurred: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+# @app.route('/audio/<id>/', methods=['POST'])
+# def verification(id):
+#     if 'file' not in request.files:
+#         return jsonify({'error': 'No file part'}), 400
+    
+#     file = request.files['file']
+    
+#     if file.filename == '':
+#         return jsonify({'error': 'No selected file'}), 400
+    
+#     if file:
+#         audio_input = file.read()
+        
+#         try:
+#             result = whisper_model.transcribe(audio_input)
+#             return jsonify({'transcription': result["text"]})
+#         except Exception as e:
+#             return jsonify({'error': str(e)}), 500
 
 # Start the Flask app
 if __name__ == '__main__':
